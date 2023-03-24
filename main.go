@@ -695,32 +695,37 @@ func emitFreeAndPushReturnedValue(resultList *ast.FieldList) {
 // ABI of stack layout in function call
 //
 // string:
-//   str.ptr
-//   str.len
-// slice:
-//   slc.ptr
-//   slc.len
-//   slc.cap
 //
-// ABI of function call
+//	str.ptr
+//	str.len
+//
+// slice:
+//
+//	slc.ptr
+//	slc.len
+//	slc.cap
+//
+// # ABI of function call
 //
 // call f(i1 int, i2 int) (r1 int, r2 int)
-//   -- stack top
-//   i1
-//   i2
-//   r1
-//   r2
+//
+//	-- stack top
+//	i1
+//	i2
+//	r1
+//	r2
 //
 // call f(i int, s string, slc []T) int
-//   -- stack top
-//   i
-//   s.ptr
-//   s.len
-//   slc.ptr
-//   slc.len
-//   slc.cap
-//   r
-//   --
+//
+//	-- stack top
+//	i
+//	s.ptr
+//	s.len
+//	slc.ptr
+//	slc.len
+//	slc.cap
+//	r
+//	--
 func emitFuncall(fun ast.Expr, eArgs []ast.Expr, hasEllissis bool) {
 	emitComment(2, "[emitFuncall] %T(...)\n", fun)
 	var funcType *ast.FuncType
@@ -1415,10 +1420,12 @@ func emitTypeAssertExpr(e *ast.TypeAssertExpr, ctx *evalContext) {
 
 // targetType is the type of someone who receives the expr value.
 // There are various forms:
-//   Assignment:       x = expr
-//   Function call:    x(expr)
-//   Return:           return expr
-//   CompositeLiteral: T{key:expr}
+//
+//	Assignment:       x = expr
+//	Function call:    x(expr)
+//	Return:           return expr
+//	CompositeLiteral: T{key:expr}
+//
 // targetType is used when:
 //   - the expr is nil
 //   - the target type is interface and expr is not.
@@ -1670,7 +1677,7 @@ func emitBinaryExprComparison(left ast.Expr, right ast.Expr) {
 	}
 }
 
-//@TODO handle larger types than int
+// @TODO handle larger types than int
 func emitCompExpr(inst string) {
 	printf("  popq %%rcx # right\n")
 	printf("  popq %%rax # left\n")
@@ -3851,7 +3858,7 @@ func walk(pkg *PkgContainer) {
 	var varSpecs []*ast.ValueSpec
 	var constSpecs []*ast.ValueSpec
 
-	// grouping declarations by type
+	// 将该包内所有声明按类型聚合起来
 	for _, decl := range pkg.Decls {
 		switch dcl := decl.(type) {
 		case *ast.GenDecl:
@@ -4131,6 +4138,7 @@ var tEface *Type = &Type{
 
 var generalSlice ast.Expr = &ast.Ident{}
 
+// 包含go中的所有标识符
 func createUniverse() *ast.Scope {
 	universe := ast.NewScope(nil)
 	objects := []*ast.Object{
@@ -4203,10 +4211,12 @@ func findFilesInDir(dir string) []string {
 	return r
 }
 
+// 包名没有"/"则说明是标准库
 func isStdLib(pth string) bool {
 	return !strings.Contains(pth, "/")
 }
 
+// 获取该文件导入的包列表
 func getImportPathsFromFile(file string) []string {
 	fset := &token.FileSet{}
 	astFile0 := parseImports(fset, file)
@@ -4259,6 +4269,7 @@ func sortTopologically(tree DependencyTree) []string {
 	return sorted
 }
 
+// 获取包的本机文件路径
 func getPackageDir(importPath string) string {
 	if isStdLib(importPath) {
 		return prjSrcPath + "/" + importPath
@@ -4296,6 +4307,7 @@ func collectDependency(tree DependencyTree, paths map[string]bool) {
 var srcPath string
 var prjSrcPath string
 
+// 获取所有文件导入的包列表，再额外加上unsafe、runtime
 func collectAllPackages(inputFiles []string) []string {
 	directChildren := collectDirectDependents(inputFiles)
 	tree := make(DependencyTree)
@@ -4320,6 +4332,7 @@ func collectAllPackages(inputFiles []string) []string {
 	return paths
 }
 
+// 获取所有文件导入的包列表
 func collectDirectDependents(inputFiles []string) map[string]bool {
 	importPaths := make(map[string]bool)
 	for _, inputFile := range inputFiles {
@@ -4331,6 +4344,7 @@ func collectDirectDependents(inputFiles []string) map[string]bool {
 	return importPaths
 }
 
+// 获取路径下所有文件名称
 func collectSourceFiles(pkgDir string) []string {
 	fnames := findFilesInDir(pkgDir)
 	var files []string
@@ -4364,12 +4378,12 @@ func buildPackage(_pkg *PkgContainer, universe *ast.Scope) {
 	logf("Building package : %s\n", _pkg.path)
 	fset := &token.FileSet{}
 	pkgScope := ast.NewScope(universe)
-	for _, file := range _pkg.files {
+	for _, file := range _pkg.files { // 遍历包中所有文件
 		if strings.HasSuffix(file, ".s") {
 			continue
 		}
 		logf("Parsing file: %s\n", file)
-		astFile := parseFile(fset, file)
+		astFile := parseFile(fset, file) // 解析成ast
 		_pkg.name = astFile.Name.Name
 		_pkg.astFiles = append(_pkg.astFiles, astFile)
 		for name, obj := range astFile.Scope.Objects {
@@ -4379,7 +4393,7 @@ func buildPackage(_pkg *PkgContainer, universe *ast.Scope) {
 	for _, astFile := range _pkg.astFiles {
 		resolveImports(astFile)
 		var unresolved []*ast.Ident
-		for _, ident := range astFile.Unresolved {
+		for _, ident := range astFile.Unresolved { // 对于无法识别的标识符进一步解析
 			logf("resolving %s ...", ident.Name)
 			obj := pkgScope.Lookup(ident.Name)
 			if obj != nil {

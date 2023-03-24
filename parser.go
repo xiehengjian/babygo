@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+
 	"github.com/DQNEO/babygo/lib/ast"
 	"github.com/DQNEO/babygo/lib/fmt"
 	"github.com/DQNEO/babygo/lib/strconv"
 	"github.com/DQNEO/babygo/lib/token"
-	"os"
 )
 
 func (p *parser) init(src []uint8) {
@@ -1402,6 +1403,7 @@ func (p *parser) parseFile(importsOnly bool) *ast.File {
 	return f
 }
 
+// 读取指定文件的文本
 func readSource(filename string) []uint8 {
 	buf, _ := os.ReadFile(filename)
 	return buf
